@@ -1,0 +1,6 @@
+CREATE DATABASE IF NOT EXISTS demo CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+CREATE DATABASE IF NOT EXISTS demo_upgrade CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+CREATE USER 'flow'@'%' IDENTIFIED BY 'flow_pass';
+GRANT ALL PRIVILEGES ON demo.* TO 'flow'@'%';
+GRANT ALL PRIVILEGES ON demo_upgrade.* TO 'flow'@'%';
+FLUSH PRIVILEGES;

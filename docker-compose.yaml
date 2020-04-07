@@ -1,0 +1,136 @@
+version: '3.5'
+services:
+
+  mariadb:
+    image: docker.io/bitnami/mariadb:10.3.20-debian-9-r0
+    hostname: mariadb
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: "Z5hme42yvb"
+      MARIADB_DATABASE: "my_database"
+    volumes:
+      - ./data/db:/bitnami/mariadb
+      - ./db/demo-db.sql:/docker-entrypoint-initdb.d/demo-db.sql
+      - ./db/my.cnf:/opt/bitnami/mariadb/conf/my.cnf
+    healthcheck:
+      test: ["CMD-SHELL", "sh", "-c", "exec mysqladmin status -uroot -p$MARIADB_ROOT_PASSWORD"]
+      start_period: 120s
+      interval: 10s
+      timeout: 1s
+      retries: 3
+    ports:
+      - 3306:3306
+
+  flow-web:
+    image: docker.io/cloudbees/cbflow-web:9.2.0.139827_1.0.7_20191110
+    hostname: flow-web
+    restart: always
+    depends_on:
+      - flow-server
+    environment:
+      CBF_WEB_HOST: flow-web
+      CBF_SERVER_HOST: flow-server
+      CBF_LOCAL_RESOURCE_HOST: flow-bound-agent
+      CBF_WEB_NO_HTTPS_REDIRECT: 1
+    volumes:
+      - ./data/flow-web:/plugins-data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/cbflow/health-check"]
+      start_period: 10s
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 80:80
+      - 443:443
+
+  flow-server:
+    image: docker.io/cloudbees/cbflow-server:9.2.0.139827_1.0.7_20191110
+    hostname: flow-server
+    restart: always
+    depends_on:
+      - mariadb
+    environment:
+      CBF_SERVER_HOST: flow-server
+      CBF_CONFIGURE: "--serverInitMemoryMB=4096 --serverMaxMemoryMB=4096"
+      CBF_SERVER_ADMIN_PASSWORD: cloudbees
+      CBF_WEB_FQDN: flow-web
+      CBF_DB_TYPE: mariadb
+      CBF_DB_HOST: mariadb
+      CBF_DB_PORT: 3306
+      CBF_DB_NAME: demo
+      CBF_DB_USER: flow
+      CBF_DB_PASSWORD: flow_pass
+    volumes:
+      - ./data/flow-server/custom-config:/custom-config
+      - ./data/flow-server/plugins-data:/plugins-data
+      - ./flow-server/01_setupRemoteRepository.pl:/opt/cbflow/server/setup/01_setupRemoteRepository.pl
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/cbflow/health-check"]
+      start_period: 40s
+      interval: 2m
+      timeout: 5s
+      retries: 3
+    ports:
+      - 8000:8000
+      - 8443:8443
+      - 61613:61613
+
+  flow-repository:
+    image: docker.io/cloudbees/cbflow-repository:9.2.0.139827_1.0.7_20191110
+    hostname: flow-repository
+    restart: always
+    depends_on:
+      - flow-server
+    environment:
+      CBF_REPOSITORY_NAME: default
+      PUBLIC_HOSTNAME: flow-repository
+      CBF_SERVER_HOST: flow-server
+      CBF_SERVER_PASSWORD: cloudbees
+      CBF_SERVER_USER: admin
+      CBF_LOCAL_RESOURCE_HOST: flow-bound-agent
+      CBF_CONFIGURE: "--repositoryInitMemoryMB=256 --repositoryMaxMemoryMB=512"
+    volumes:
+      - ./data/flow-repository/data:/repository-data
+      - ./flow-repository/logback-local.groovy:/custom-config/repository/logback-local.groovy
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/cbflow/health-check"]
+      start_period: 120s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 8200:8200
+
+  flow-devopsinsight:
+    image: docker.io/cloudbees/cbflow-dois:9.2.0.139827_1.0.7_20191110
+    hostname: flow-devopsinsight
+    restart: always
+    depends_on:
+      - flow-server
+    environment:
+      CBF_SERVER_HOST: flow-server
+      CBF_DOIS_HOST: flow-devopsinsight
+      CBF_SERVER_USER: admin
+      CBF_SERVER_PASSWORD: cloudbees
+      CBF_DOIS_PASSWORD: cloudbees
+      CBF_DOIS_ES_RAM: 1024
+      CBF_DOIS_LS_INIT_RAM: 512
+      CBF_DOIS_LS_MAX_RAM: 512
+    volumes:
+      - ./data/flow-devopsinsight/data:/elasticsearch-data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/cbflow/health-check"]
+      start_period: 60s
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 9200:9200
+      - 9500:9500
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 3307:8080
