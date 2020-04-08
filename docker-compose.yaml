@@ -129,8 +129,8 @@ services:
       - 9200:9200
       - 9500:9500
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 3307:8080
+  # adminer:
+  #   image: adminer
+  #   restart: always
+  #   ports:
+  #     - 3307:8080
