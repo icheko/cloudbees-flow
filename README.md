@@ -10,10 +10,16 @@ This project will spin up an evaluation cluster of [Cloudbees Flow](https://docs
 For more details see: [Cloudbees Non-Prod Requirements](https://docs.cloudbees.com/docs/cloudbees-flow/latest/install-k8s/#_non_production_environment)
 
 ## Initialize
+
+Run this script to initialize the stack
+
 ````
 source initialize.sh
 ````
-If the initialize script fails, follow these manual steps:
+
+If the initialize script fails, follow the manual steps.
+
+### Manual Steps
 
 1. Start up DB
 
@@ -45,7 +51,11 @@ If the initialize script fails, follow these manual steps:
 
    `docker-compose up -d flow-devopsinsight`
    
-   Wait for login screen.
+   flow-devopsinsight will log:
+
+   `Successfully started Logstash API endpoint {:port=>9600}`
+
+   And flow-server will restart. Wait for login screen.
    
 6. Shutdown
 
